@@ -87,6 +87,8 @@ Application state/context
 """
 GLOBAL_CONTEXT = None
 
+PARAMETRICS_CACHE = {}
+
 """
 If set by config file or command line parameters we output humorous debug information
 """
@@ -105,6 +107,10 @@ CK_CONTEXT_ACC_TOK = "ACCESS_TOKEN"
 CK_CONTEXT_EXP = "EXPIRES"
 CK_CONTEXT_TS = "GEN_TIMESTAMP"
 
+PC_ID = "Id"
+
+DBG_IN_FILE = ""
+
 def get_context_file_name():
 	"""
 	Returns the complete path to the program state and configuration file.
@@ -112,6 +118,31 @@ def get_context_file_name():
 	"""
 	
 	return os.path.join(os.path.expanduser("~"), STATE_FILE)
+
+def get_parametrics_cache_file_name():
+	"""
+	Returns the complete path to the parametrics cache file.
+	@return: Full path to the parametrics cache file
+	"""
+	
+	return os.path.join(os.path.expanduser("~"), PARAMETRICS_FILE)
+
+def save_parametrics_cache():
+	"""
+	Saves the parametrics cache to a JSON file.
+	@return: Nothing
+	"""
+	
+	global PARAMETRICS_CACHE
+	
+	try:
+		with open(get_parametrics_cache_file_name(), "wt") as ctx_file:
+			json.dump(PARAMETRICS_CACHE, ctx_file, indent=4, sort_keys=True)			
+	except Exception, e:
+		print >> sys.stderr, "Failed to save parametrics cache: " + str(e)
+		
+	return 
+
 
 def save_global_context():
 	"""
@@ -129,6 +160,24 @@ def save_global_context():
 		print >> sys.stderr, "Current state: " + str(GLOBAL_CONTEXT)
 		
 	return 
+
+def load_parametrics_cache():
+	"""
+	Loads the parametrics cache from a JSON file.
+	@raise Exception: Passes along any exceptions from the 'open' call. 
+	@return: Nothing
+	"""
+	
+	global PARAMETRICS_CACHE
+	
+	try:
+		with open(get_parametrics_cache_file_name(), "rt") as ctx_file:
+			PARAMETRICS_CACHE = json.load(ctx_file)
+	except Exception, e:
+		# Sink it quietly
+		pass
+	
+	return
 		
 def load_global_context():
 	"""
@@ -454,14 +503,24 @@ def search_for_part(_part, _count, _compact):
 	
 	try:
 		d = get_part_data(_part, _count)
-	except RuntimeError, e:
+	except RuntimeError:
 		#
 		# This could be thrown by anything and everything.  We'll assume that just means that no results were found.
 		#
 		return json.dumps(None)
 	
+	global PARAMETRICS_CACHE
+	for i in d["Parts"][0]["ParametricData"]:
+		parm_text = i["Text"]
+		parm_id = str(i["Id"])
+		
+		if parm_id not in PARAMETRICS_CACHE.keys():
+			PARAMETRICS_CACHE[parm_id] = parm_text
+	
 	return json.dumps(d, indent=ind, ensure_ascii=True, separators=seps)
 	
+def dbg_1():	
+	pass
 
 def setup_argparse():
 	parser = argparse.ArgumentParser()
@@ -471,12 +530,14 @@ def setup_argparse():
 	parser.add_argument("-P", help="Parameter.  Usage depends on context.")
 	parser.add_argument("-C", help="Part count. Used when searching for parts.  If omitted defaults to 1.", default=1, type=int)
 	parser.add_argument("-Jc", action="store_true", help="Output search results in compact JSON")
-	parser.add_argument("CMD", choices=["INVOKE_M1", "INVOKE_M2", "STR_M1", "STR_M2", "AUTH_NEW", "AUTH_REFRESH", "PART_SEARCH"], help="Main command.")
+	parser.add_argument("-dbgInFile", help="Input file for debug purposes")
+	parser.add_argument("CMD", choices=["INVOKE_M1", "INVOKE_M2", "STR_M1", "STR_M2", "AUTH_NEW", "AUTH_REFRESH", "PART_SEARCH", "DBG1"], help="Main command.")
 
 	return parser
 
 def process_commands():
 	global DEBUG_FLAG
+	global DBG_IN_FILE
 	
 	parser = setup_argparse()	
 	args = parser.parse_args()
@@ -489,6 +550,9 @@ def process_commands():
 	
 	if DEBUG_FLAG == True:
 		print "Debug output is enabled."
+		
+	if args.dbgInFile:		
+		DBG_IN_FILE = args.dbgInFile 
 	
 	if args.CMD == "AUTH_REFRESH":
 		refresh_auth_token()
@@ -513,6 +577,8 @@ def process_commands():
 			print >> sys.stderr, "Must specify Digi-Key part number using the -P parameter when the command is PART_SEARCH."
 		else:
 			print search_for_part(args.P, args.C, args.Jc)
+	elif args.CMD == "DBG1":
+		dbg_1()
 	else:
 		raise RuntimeError("Invalid command specified.")		
 	
@@ -527,6 +593,7 @@ def main():
 		print >> sys.stderr, "Failed to load state/config file: " + str(e)
 		return
 	
+	load_parametrics_cache()
 	#
 	# Do magic
 	#
@@ -549,6 +616,8 @@ def main():
 	except ValueError, e:
 		print >> sys.stderr, "Failed to load state/config file: " + str(e)
 		return
+	
+	save_parametrics_cache()
 
 if __name__ == '__main__':
 	main()
