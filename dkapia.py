@@ -111,6 +111,8 @@ PC_ID = "Id"
 
 DBG_IN_FILE = ""
 
+CMD_ARGS = None
+
 def get_context_file_name():
 	"""
 	Returns the complete path to the program state and configuration file.
@@ -517,6 +519,16 @@ def search_for_part(_part, _count, _compact):
 		if parm_id not in PARAMETRICS_CACHE.keys():
 			PARAMETRICS_CACHE[parm_id] = parm_text
 	
+	if len(d["Parts"]) == 1:
+		d = d["Parts"][0]
+	
+	if CMD_ARGS.rmMl:
+		d.pop("MediaLinks",None)
+	if CMD_ARGS.rmPp:
+		d.pop("PrimaryPhoto",None)
+	if CMD_ARGS.rmPd:
+		d.pop("PrimaryDatasheet",None)
+	
 	return json.dumps(d, indent=ind, ensure_ascii=True, separators=seps)
 	
 def dbg_1():	
@@ -529,19 +541,24 @@ def setup_argparse():
 	parser.add_argument("-D", action="store_true", help="Enable debug output even if disabled in state/config file.")
 	parser.add_argument("-P", help="Parameter.  Usage depends on context.")
 	parser.add_argument("-C", help="Part count. Used when searching for parts.  If omitted defaults to 1.", default=1, type=int)
-	parser.add_argument("-Jc", action="store_true", help="Output search results in compact JSON")
-	parser.add_argument("-dbgInFile", help="Input file for debug purposes")
+	parser.add_argument("-Jc", action="store_true", help="Output search results in compact JSON.")
+	parser.add_argument("-rmMl", action="store_true", help="Remove MediaLinks section from the results.")
+	parser.add_argument("-rmPp", action="store_true", help="Remove PrimaryPhoto section from the results.")
+	parser.add_argument("-rmPd", action="store_true", help="Remove PrimaryDatasheet section from the results.")
 	parser.add_argument("CMD", choices=["INVOKE_M1", "INVOKE_M2", "STR_M1", "STR_M2", "AUTH_NEW", "AUTH_REFRESH", "PART_SEARCH", "DBG1"], help="Main command.")
+	parser.add_argument("-dbgInFile", help="Input file for debug purposes.")
 
 	return parser
 
 def process_commands():
 	global DEBUG_FLAG
 	global DBG_IN_FILE
+	global CMD_ARGS
 	
 	parser = setup_argparse()	
 	args = parser.parse_args()
-
+	CMD_ARGS = args
+	
 	if args.D:
 		DEBUG_FLAG = True
 				

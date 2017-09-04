@@ -46,13 +46,16 @@ NOTE: You should probably check this downloaded script to make sure that super d
 The most frustrating part is getting past all of this Web2.0 security through annoyance.  Once all of the magic beans are collected and stored things should ‘just work’.  The very first time you try to use the API you may have to generate a magic URL using the STR_M1 command and paste that into the browser.  After that AUTH_NEW and AUTH_REFRESH should work automagically.
 
 ### Command line parameters
-+ -h – Prints  brief help text
-+ -d – Disables extra debug output overwriting the -D flag or the application configuration
-+ -D – Enables extra debug output regardless of the application configuration.  Is overridden by the -d parameter.
-+ -P – Parameter.  If searching for parts then the Digi-Key part number goes here.  If navigating the wonderful world of magical web strings then an auth code goes here.  More on that later.
-+ -C – Count.  The quantity of parts specified by -P you’re looking for.  Defaults to 1 if omitted.
-+ -Jc – Produces compact JSON output when dumping search results to stdout.  If omitted the output if formatted all pretty like.
++ -h -- Prints  brief help text
++ -d -- Disables extra debug output overwriting the -D flag or the application configuration
++ -D -- Enables extra debug output regardless of the application configuration.  Is overridden by the -d parameter.
++ -P -- Parameter.  If searching for parts then the Digi-Key part number goes here.  If navigating the wonderful world of magical web strings then an auth code goes here.  More on that later.
++ -C -- Count.  The quantity of parts specified by -P you’re looking for.  Defaults to 1 if omitted.
++ -Jc -- Produces compact JSON output when dumping search results to stdout.  If omitted the output if formatted all pretty like.
 + -dbgInFile -- Input file for debugging.  Generally used with DBG1 below.
++ -rmMl -- Removes the MediaLinks section from the result.
++ -rmPp -- Removes the PrimaryPhoto section from the result.
++ -rmPd -- Removes the PrimaryDatasheet section from the result.
 
 ### Main command
 The main command is one of the following:
