@@ -294,7 +294,7 @@ with open(INFILE, "rt") as in_file:
 
 		if dk_mount != sc_mount or dk_package != sc_package:
 			print >>sys.stderr, ":( " * 10
-			print >>sys.stderr, "Possible mismatch for component: " + comp_id
+			print >>sys.stderr, "Possible mismatch for component: %s ( %s )" % (str(comp_id),str(dkpn))
 			print >>sys.stderr, "Digikey mount type: " + package_types.pkg_mount_type_to_string(dk_mount) + ", package: " + package_types.digikey_smt_type_to_string(dk_package)
 			print >>sys.stderr, "Schematic mount type: " + package_types.pkg_mount_type_to_string(sc_mount) + ", package: " + package_types.digikey_smt_type_to_string(sc_package)
 			print >>sys.stderr
