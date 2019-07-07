@@ -122,13 +122,12 @@ def get_part_info(dkpn):
 	(stdoutdata, stderrdata) = proc.communicate(None)
 
 	if proc.returncode != 0:
-		print "Subprocess failed: " + str(proc.returncode)
 		print stderrdata
 		return None
 
 	return json.loads(stdoutdata)
 
-def guess_sc_package(l):
+def guess_schematic_package(l):
 	"""
 	Guesses the package type based on pad type in the BOM file.
 	@return: Type of (mount_type,package_type).  mount_type is a broad mount type contstant PKG_MOUNT_TYPE from package_types.py  
@@ -166,7 +165,14 @@ def guess_sc_package(l):
 	elif "SOIC-28" in package_type_str:
 		mount_type = package_types.PKG_MOUNT_TYPE_SMT
 		package_type = package_types.PKG_DK_SMT_SOIC_28
+	elif "SOT-23-6" in package_type_str:
+		mount_type = package_types.PKG_MOUNT_TYPE_SMT
+		package_type = package_types.PKG_DK_SMT_SOT_23_6
+	elif "SOT-23-5" in package_type_str:
+		mount_type = package_types.PKG_MOUNT_TYPE_SMT
+		package_type = package_types.PKG_DK_SMT_SOT_23_5
 	elif "SOT-23" in package_type_str:
+		print >>sys.stderr,"Possible bug: pad: %s\n%s" % (package_type_str,str(l))
 		mount_type = package_types.PKG_MOUNT_TYPE_SMT
 		package_type = package_types.PKG_DK_SMT_SOT_23
 	elif "DO-214" in package_type_str:
@@ -178,9 +184,15 @@ def guess_sc_package(l):
 	elif "TO_277" in package_type_str:
 		mount_type = package_types.PKG_MOUNT_TYPE_SMT
 		package_type = package_types.PKG_DK_SMT_TO_277
+	elif "MSOP-10" in package_type_str:
+		mount_type = package_types.PKG_MOUNT_TYPE_SMT
+		package_type = package_types.PKG_DK_SMT_MSOP_10
 	elif "TO-92" in package_type_str:
 		mount_type = package_types.PKG_MOUNT_TYPE_TH
 		package_type = package_types.PKG_TH_TO_92
+	elif "TO-220-3" in package_type_str:
+		mount_type = package_types.PKG_MOUNT_TYPE_TH
+		package_type = package_types.PKG_TH_TO_220_3
 	elif "TO-220" in package_type_str:
 		mount_type = package_types.PKG_MOUNT_TYPE_TH
 		package_type = package_types.PKG_TH_TO_220
@@ -193,12 +205,16 @@ def guess_sc_package(l):
 	elif "DIP-8" in package_type_str:
 		mount_type = package_types.PKG_MOUNT_TYPE_TH
 		package_type = package_types.PKG_TH_DIP_8
+	elif "Vx78-1000" in package_type_str:
+		# This is what we call a cludge
+		mount_type = package_types.PKG_MOUNT_TYPE_TH
+		package_type = package_types.PKG_TH_SIP_3
 
 
 
 	return (mount_type,package_type)
 
-def guess_dk_package(jo):
+def guess_digikey_package(jo):
 	"""
 	Attempts to extract the mount type package ID from DigiKey data.
 	@param jo: JSON output from part search.
@@ -225,7 +241,7 @@ def guess_dk_package(jo):
 		raise RuntimeError("Failed to find package information in provided JSON input.")
 
 	if DEBUG:
-		print "DEBUG<guess_dk_package>: Identified package: %s, package_id: %s" % (str(package),str(package_id))
+		print "DEBUG<guess_digikey_package>: Identified package: %s, package_id: %s" % (str(package),str(package_id))
 
 	pkg_mount_type = package_types.PKG_MOUNT_TYPE_UNKNOWN
 
@@ -254,6 +270,7 @@ i = 0
 
 comp_id = None
 dkpn = None
+jo = None
 
 with open(INFILE, "rt") as in_file:
 	i = i + 1
@@ -281,23 +298,50 @@ with open(INFILE, "rt") as in_file:
 		if DEBUG:
 			print "DEBUG<main>: Looking at DKPN: %s for components: %s" % (dkpn,comp_id)
 
-		jo = get_part_info(dkpn)
+		try:
+			jo = get_part_info(dkpn)
+		except Exception as e:
+			raise RuntimeError("Uncaught exception:",e)
 
-		dk_mount,dk_package = guess_dk_package(jo)
-		sc_mount,sc_package = guess_sc_package(l)
+		if jo is None:
+			continue
+
+		dk_mount,dk_package = guess_digikey_package(jo)
+		sc_mount,sc_package = guess_schematic_package(l)
 
 		if DEBUG:
 			print ""
 
 
-		#print dkpn + " --> " + str(guess_dk_package(jo))
+		#print dkpn + " --> " + str(guess_digikey_package(jo))
 
 		if dk_mount != sc_mount or dk_package != sc_package:
-			print >>sys.stderr, ":( " * 10
-			print >>sys.stderr, "Possible mismatch for component: %s ( %s )" % (str(comp_id),str(dkpn))
-			print >>sys.stderr, "Digikey mount type: " + package_types.pkg_mount_type_to_string(dk_mount) + ", package: " + package_types.digikey_smt_type_to_string(dk_package)
-			print >>sys.stderr, "Schematic mount type: " + package_types.pkg_mount_type_to_string(sc_mount) + ", package: " + package_types.digikey_smt_type_to_string(sc_package)
-			print >>sys.stderr
+
+			#
+			# Pointers to footprint conversion functions
+			#
+			dk_fc = None
+			sc_fc = None
+
+			if dk_mount == package_types.PKG_MOUNT_TYPE_SMT:
+				dk_fc = package_types.digikey_smt_type_to_string
+			elif dk_mount == package_types.PKG_MOUNT_TYPE_TH: 
+				dk_fc = package_types.digikey_th_type_to_string
+			else:
+				dk_fc = package_types.digikey_invalid_type_to_string
+
+			if sc_mount == package_types.PKG_MOUNT_TYPE_SMT:
+				sc_fc = package_types.schematic_smt_type_to_string
+			elif sc_mount == package_types.PKG_MOUNT_TYPE_TH: 
+				sc_fc = package_types.schematic_th_type_to_string
+			else:
+				sc_fc = package_types.schematic_invalid_type_to_string				
+
+			print >>sys.stderr,":( -- Possible mismatch for component: [%s]" % str(comp_id)
+			print >>sys.stderr, "	Mount type:	Schematic:	[%s]	Digikey	[%s]" % (package_types.pkg_mount_type_to_string(sc_mount),package_types.pkg_mount_type_to_string(dk_mount));
+			print >>sys.stderr, "	Package:	Schematic:	[%s]	Digikey	[%s]" % (sc_fc(sc_package),dk_fc(dk_package));
+
+			print >> sys.stderr,""
 
 
 
