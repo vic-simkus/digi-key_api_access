@@ -29,7 +29,7 @@ DIGIKEY_TH_MOUNTING_TYPES = (80,367,123)
 # 319 -- HC49/US
 # 11811 -- Radial, can
 # 2 -- Radial
-# 10828  - TO-220
+# 10828  - TO-220 Isolated tab
 # 1 - Axial
 # 6547 - 8-DIP
 # 8459 - TO-251
@@ -39,11 +39,16 @@ DIGIKEY_TH_MOUNTING_TYPES = (80,367,123)
 
 DIGIKEY_TH_PACKAGE_TYPES = (319,11811,2,10828,1,6547,8459,13139,8250,7272)
 
-PKG_TH_TO_220 = 10828
-PKG_TH_HC_49 = 319
+PKG_TH_HC49 = 319
+PKG_TH_RADIAL_CAN = 11811
+PKG_TH_AXIAL = 1
+PKG_TH_RADIAL = 2
+PKG_TH_TO_220_ISOLATED = 10828
+PKG_TH_TO_220_3 = 8250
 PKG_TH_DIP_8 = 6547
 PKG_TH_TO_251 = 8459
 PKG_TH_TO_92 = 13139
+PKG_TH_SIP_3 = 7272
 
 #===============================================================================
 #
@@ -73,6 +78,8 @@ PKG_TH_TO_92 = 13139
 # 8582 - 14-TSSOP
 # 15647 - 1206 WIDE
 
+# XXX - we have a clash between SOT-23 (12624) and TO-236 (12624)
+
 
 DIGIKEY_SMT_PACKAGE_TYPES = (6,7,12624,333,10180,6548,6534,11427,5120,6514,12624,6511,10109,10504,13421,986,160,13125,8582,15647)
 
@@ -97,6 +104,44 @@ PKG_DK_SMT_SOT_23_5 = 160
 PKG_DK_SMT_MSOP_10 = 13125
 PKG_DK_SMT_TSSOP_14 = 8582
 PKG_DK_SMT_1206_WIDE = 15647
+
+def schematic_th_type_to_string(_type):
+	return digikey_th_type_to_string(_type);
+
+def schematic_smt_type_to_string(_type):
+	return digikey_smt_type_to_string(_type);	
+
+def schematic_invalid_type_to_string(_type):
+	return digikey_invalid_type_to_string(_type);
+
+def digikey_th_type_to_string(_type):
+	if _type ==PKG_TH_HC49:
+		return "HC49";
+	elif _type == PKG_TH_RADIAL_CAN:
+		return "RADIAL_CAN";
+	elif _type == PKG_TH_AXIAL:
+		return "AXIAL";
+	elif _type == PKG_TH_RADIAL:
+		return "RADIAL";
+	elif _type == PKG_TH_TO_220_ISOLATED:
+		return "TO220_ISOLATED";
+	elif _type == PKG_TH_TO_220_3:
+		return "TO220_3";
+	elif _type == PKG_TH_DIP_8:
+		return "DIP_8";
+	elif _type == PKG_TH_TO_251:
+		return "TO_251";
+	elif _type == PKG_TH_TO_92:
+		return "TO_92";
+	elif _type == PKG_TH_SIP_3:
+		return "SIP_3";
+	else:
+		return "INVALID TH(%s)" % str(_type);
+	
+
+def digikey_invalid_type_to_string(_type):
+	# XXX -- Need to do better here
+	return "*INVALID FOOTPRINT*(%s)" % (str(_type));	
 
 def digikey_smt_type_to_string(_type):
 	if _type == -1:
@@ -177,5 +222,5 @@ TYPE_* contstants to a human readable string.
 
 CASE_EQUIVALENT = (
 		('SOT_23','TO_236','TO_236AB'),
-		('SOT-23-6','SC-74',)
+		('SOT-23-6','SC-74'),
 	)
