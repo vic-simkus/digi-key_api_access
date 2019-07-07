@@ -523,7 +523,13 @@ def get_part_data(_id, _qty):
 
 
 	if r.status_code < 200 or r.status_code >= 300:
-		raise RuntimeError("Remote call to search for parts failed for some reason.  Don't know why. Code: " + str(r.status_code) + ", Body: " + r.text)
+
+		reason_guess = "Don't know why."
+
+		if r.status_code == 429:
+			reason_guess = "Rate Limit Exceeded."
+
+		raise RuntimeError("Remote call failed. Best guess: %s Code: %s Body: %s" % (reason_guess,str(r.status_code),r.text))
 
 	body = json.loads(r.text)
 
@@ -550,7 +556,7 @@ def search_for_part(_part, _count, _compact):
 		#
 		# This could be thrown by anything and everything.  We'll assume that just means that no results were found.
 		#
-		print >>sys.stderr,"Failed to search for part: " + str(e)
+		print >>sys.stderr,"Failed to search for part [%s]: %s " % (_part,str(e))
 		sys.exit(-1)
 
 	global PARAMETRICS_CACHE
